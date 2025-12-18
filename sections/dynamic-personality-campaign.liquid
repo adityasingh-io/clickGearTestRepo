@@ -1,0 +1,157 @@
+{%- liquid
+  assign now_timestamp = 'now' | date: '%s' | plus: 0
+  assign initial_active_id = null
+  assign default_bg = section.blocks.first.settings.campaign.brand_color
+  assign default_text = section.blocks.first.settings.campaign.text_color
+
+  for block in section.blocks
+    assign campaign = block.settings.campaign
+    if campaign == blank
+      continue
+    endif
+
+    assign start_seconds = campaign.start_time | date: '%s' | plus: 0
+    assign end_seconds = campaign.end_time | date: '%s' | plus: 0
+
+    if now_timestamp >= start_seconds and now_timestamp <= end_seconds
+      assign initial_active_id = block.id
+      assign default_bg = campaign.brand_color
+      assign default_text = campaign.text_color
+      break
+    endif
+  endfor
+
+  if initial_active_id == null and section.blocks.size > 0
+    assign initial_active_id = section.blocks.first.id
+  endif
+-%}
+
+{{ 'dynamic-personality-campaign.css' | asset_url | stylesheet_tag }}
+
+{%- if section.blocks.size > 0 -%}
+  <div
+    class="smart-split-container"
+    id="SmartCampaign-{{ section.id }}"
+    style="--dynamic-bg: {{ default_bg }}; --dynamic-text: {{ default_text }};"
+  >
+    {%- for block in section.blocks -%}
+      {%- assign campaign = block.settings.campaign -%}
+      {%- if campaign != blank -%}
+        {%- assign layout_clean = campaign.layout_style | handle -%}
+        <div
+          class="campaign-slide {% if block.id == initial_active_id %}active{% endif %} {% if layout_clean contains 'right' %}layout-image-right{% endif %}"
+          id="slide-{{ block.id }}"
+        >
+          <div class="smart-split-image">
+            {%- if campaign.hero_image -%}
+              {{
+                campaign.hero_image
+                | image_url: width: 2400
+                | image_tag:
+                  loading: 'eager',
+                  widths: '550, 900, 1400, 2400',
+                  sizes: '(min-width: 900px) 50vw, 100vw',
+                  alt: campaign.headline
+              }}
+            {%- endif -%}
+
+            {%- if campaign.offer_text != blank -%}
+              <div class="campaign-offer-badge">
+                {{ campaign.offer_text }}
+              </div>
+            {%- endif -%}
+          </div>
+
+          <div class="smart-split-content">
+            <div class="campaign-selector-wrapper">
+              {%- for b_block in section.blocks -%}
+                {%- assign b_campaign = b_block.settings.campaign -%}
+                {%- if b_campaign != blank -%}
+                  <button
+                    class="campaign-tab-btn {% if b_block.id == initial_active_id %}active{% endif %}"
+                    data-target-id="{{ b_block.id }}"
+                    onclick="switchPersonality('{{ b_block.id }}', '{{ b_campaign.brand_color }}', '{{ b_campaign.text_color }}')"
+                  >
+                    {{ b_campaign.headline | truncate: 20 }}
+                  </button>
+                {%- endif -%}
+              {%- endfor -%}
+            </div>
+
+            <h2 class="campaign-heading">{{ campaign.headline }}</h2>
+            <div class="campaign-subheading">{{ campaign.sub_headline }}</div>
+
+            {%- assign product = campaign.featured_product.value -%}
+            {%- if product != blank -%}
+              <a href="{{ product.url }}" class="custom-product-card">
+                <div class="custom-card-image">
+                  {{
+                    product.featured_image
+                    | image_url: width: 600
+                    | image_tag: loading: 'lazy', widths: '300, 600', alt: product.title
+                  }}
+                </div>
+                <div class="custom-card-info">
+                  <h3 class="custom-card-title">{{ product.title }}</h3>
+                  <div class="custom-card-price">{{ product.price | money }}</div>
+                  <span class="custom-card-btn">Shop Now</span>
+                </div>
+              </a>
+            {%- endif -%}
+          </div>
+        </div>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+
+  <script>
+    function switchPersonality(blockId, bgColor, textColor) {
+      const container = document.getElementById('SmartCampaign-{{ section.id }}');
+      container.style.setProperty('--dynamic-bg', bgColor);
+      container.style.setProperty('--dynamic-text', textColor);
+
+      const buttons = container.querySelectorAll('.campaign-tab-btn');
+      buttons.forEach((btn) => {
+        btn.classList.remove('active');
+        if (btn.dataset.targetId === blockId) {
+          btn.classList.add('active');
+        }
+      });
+
+      const slides = container.querySelectorAll('.campaign-slide');
+      slides.forEach((slide) => {
+        slide.classList.remove('active');
+        if (slide.id === 'slide-' + blockId) {
+          slide.classList.add('active');
+        }
+      });
+    }
+  </script>
+{%- endif -%}
+
+{% schema %}
+{
+  "name": "Dynamic Personality",
+  "settings": [],
+  "blocks": [
+    {
+      "type": "campaign_entry",
+      "name": "Campaign Entry",
+      "settings": [
+        {
+          "type": "metaobject",
+          "id": "campaign",
+          "label": "Campaign",
+          "metaobject_type": "personality_campaign"
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Dynamic Personality",
+      "blocks": []
+    }
+  ]
+}
+{% endschema %}
