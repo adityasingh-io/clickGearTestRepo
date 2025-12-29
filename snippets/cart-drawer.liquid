@@ -19,8 +19,7 @@
 
 <cart-drawer class="drawer{% if cart == empty %} is-empty{% endif %}">
   <div id="CartDrawer" class="cart-drawer">
-    <ig-shipping-progress-container></ig-shipping-progress-container>
-    <ig-volume-progress-bar-widget></ig-volume-progress-bar-widget>
+   
     <div id="CartDrawer-Overlay" class="cart-drawer__overlay"></div>
     <div
       class="drawer__inner gradient color-{{ settings.cart_color_scheme }}"
@@ -76,6 +75,8 @@
           </span>
         </button>
       </div>
+
+       <ig-shipping-progress-container></ig-shipping-progress-container>
       <cart-drawer-items
         {% if cart == empty %}
           class=" is-empty"
